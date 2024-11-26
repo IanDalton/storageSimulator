@@ -11,29 +11,48 @@ class Almacen:
         self.equipos = self.crear_equipos()
         self.portones = self.crear_portones()
 
-    def crear_portones(self,salida1,salida2,entrada):
+    def crear_portones(self, salida1, salida2, entrada):
         portones = {}
-        portones['Ingreso'] = [Porton('Ingreso', posicion=(4+17*(salida1+i), 0)) for i in range(entrada)]
-        portones['Salida'] = [Porton('Salida', posicion=(i*17+4, 0)) for i in range(salida1)]
-        portones['Salida'].extend([Porton('Salida', posicion=(4+17*(i+entrada), 0)) for i in range(salida1,salida2)])
+        portones['Ingreso'] = [Porton('Ingreso', posicion=(
+            4+17*(salida1+i), 0)) for i in range(entrada)]
+        portones['Salida'] = [
+            Porton('Salida', posicion=(i*17+4, 0)) for i in range(salida1)]
+        portones['Salida'].extend([Porton('Salida', posicion=(
+            4+17*(i+entrada), 0)) for i in range(salida1, salida2)])
+
+        for i, porton in enumerate(portones['Ingreso']):
+            porton.assign_id(i)
+        last_id = portones['Ingreso'][-1].id
+        for i, porton in enumerate(portones['Salida']):
+            i += last_id + 1
+            porton.assign_id(i)
         return portones
+
     def crear_sectores(self):
         sectores = {}
-        sectores['Frío'] = Sector('Frío', SelectivoSimple(),largo=80,ancho=20,posicion=(220,0))
-        sectores['Aerosoles 1'] = Sector('Aerosoles', DriveIn(),largo=70,ancho=25,posicion=(0,130))
-        sectores['Aerosoles 2'] = Sector('Aerosoles', DriveIn(),largo=70,ancho=25,posicion=(0,0))
-        sectores['Almacén Foods 1'] = Sector('Almacén Foods', PushBack(),largo=90,ancho=20,posicion=(200,30))
-        sectores['Almacén Foods 2'] = Sector('Almacén Foods', PushBack(),largo=130,ancho=50,posicion=(150,30))
-        sectores["HPC 1"] = Sector("HPC", SelectivoDoble(),largo=130,ancho=30,posicion=(120,30))
-        sectores["HPC 2"] = Sector("HPC", SelectivoDoble(),largo=80,ancho=40,posicion=(80,70))
-        sectores["HPC 3"] = Sector("HPC", SelectivoDoble(),largo=130,ancho=45,posicion=(25,30))
+        sectores['Frío'] = Sector(
+            'Frío', SelectivoSimple(), largo=80, ancho=20, posicion=(220, 0))
+        sectores['Aerosoles'] = [Sector(
+            'Aerosoles', DriveIn(), largo=70, ancho=25, posicion=(0, 130)),
+            Sector('Aerosoles', DriveIn(), largo=70, ancho=25, posicion=(0, 0))]
+        sectores["Food"][Sector('Almacén Foods', PushBack(), largo=90, ancho=20, posicion=(200, 30)),
+                         Sector('Almacén Foods', PushBack(), largo=130, ancho=50, posicion=(150, 30))]
+        sectores["HPC"] = [Sector(
+            "HPC", SelectivoDoble(), largo=130, ancho=30, posicion=(120, 30)),
+            Sector(
+            "HPC", SelectivoDoble(), largo=80, ancho=40, posicion=(80, 70)),
+            Sector(
+            "HPC", SelectivoDoble(), largo=130, ancho=45, posicion=(25, 30))]
         return sectores
 
-    def crear_equipos(self):
+    def crear_equipos(self, autoelevadores=3, reach_baja=2, reach_alta=2, transpaletas=2, zorras=2):
         equipos = {}
-        equipos['Autoelevador'] = Equipo('Autoelevador', altura_maxima=5, costo_mensual=1000)
-        equipos['Reach Baja'] = Equipo('Reach Baja', altura_maxima=7, costo_mensual=1200)
-        equipos['Reach Alta'] = Equipo('Reach Alta', altura_maxima=10, costo_mensual=1500)
-        equipos['Transpaleta'] = Equipo('Transpaleta', altura_maxima=0, costo_mensual=500)
-        equipos['Zorra'] = Equipo('Zorra', altura_maxima=0, costo_mensual=300)
+        equipos['Autoelevador'] = [Equipo(
+            'Autoelevador', altura_maxima=6, costo_mensual=1250)for _ in range(autoelevadores)]
+        equipos['Reach Baja'] = [Equipo(
+            'Reach Baja', altura_maxima=8, costo_mensual=1260) for _ in range(reach_baja)]
+        equipos['Reach Alta'] = [Equipo(
+            'Reach Alta', altura_maxima=10, costo_mensual=1800)for _ in range(reach_alta)]
+        equipos['Zorra'] = [
+            Equipo('Zorra', altura_maxima=0, costo_mensual=1000) for _ in range(zorras)]
         return equipos

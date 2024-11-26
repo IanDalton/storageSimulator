@@ -1,4 +1,5 @@
 from components.Shelf import Shelf, ShelfType
+from utils import calculate_distance
 
 
 class Sector:
@@ -17,6 +18,31 @@ class Sector:
             if floor is not None:
                 return shelf,floor
         return None,None
+
+    def get_open_shelf(self,origin) -> Shelf:
+        #Will fill itself on a triangulaf fashion based on the nearest free shelf
+        nearest_shelf = None
+        nearest_distance = None
+        
+        for shelf in self.almacenamiento:
+            floor = shelf.locate_empty()
+            if floor is not None:
+                if nearest_shelf is None:
+                    nearest_shelf = shelf
+                    nearest_distance = calculate_distance(origin,shelf.position)
+                else:
+                    if calculate_distance(origin,shelf.position) < nearest_distance:
+                        nearest_shelf = shelf
+                        nearest_distance = calculate_distance(origin,shelf.position)
+        return nearest_shelf
+    
+    def calculate_distance_to_floor(self,origin:tuple[int,int],shelf:Shelf,floor:int):
+        destination = (self.posicion[0]+shelf.position[0],self.posicion[1]+ shelf.position[1])
+        distance = calculate_distance(origen=origin,destino=destination)
+        distance += shelf.shelf_height*floor
+        return distance
+
+
 
     def append_pallet(self,pallet):
         for shelf in self.almacenamiento:
