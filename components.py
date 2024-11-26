@@ -1,4 +1,5 @@
 import salabim as sim
+import csv
 
 # Definición de clases
 class Pallet:
@@ -36,13 +37,23 @@ class Shelf:
         self.floors = floors
         self.shelf_height = shelf_height
         self.shelf_type = shelf_type
-        self.content = [(None*pallets_per_floor)*floors] # Perdon
+        self.content:list[list[Pallet]] = [[None for _ in range(pallets_per_floor)] for _ in range(self.floors)] # Perdon
     def add_pallet(self,pallet,floor):
         self.content[floor] = pallet
-    def remove_pallet(self,floor):
-        pallet = self.content[floor]
-        self.content[floor] = None
-        return pallet
+    def append_pallet(self,pallet):
+        for i,floor in enumerate(self.content):
+            if floor.contains(None):
+                self.content[i] = pallet
+                return i
+        return None
+
+    def remove_pallet(self):
+        for i, floor in enumerate(self.content):
+            for j, pallet in enumerate(floor):
+                if pallet is not None:
+                    self.content[i][j] = None
+                    return pallet
+        return None  # If no pallet is found
     
     def locate(self,material):
         for i,floor in enumerate(self.content):
@@ -69,7 +80,7 @@ class Sector:
     def __init__(self, nombre, tipo_estanteria,largo,ancho,posicion,niveles=6):
         self.nombre = nombre
         self.tipo_estanteria:ShelfType = tipo_estanteria
-        self.almacenamiento = self.generate_shelves(largo,ancho)
+        self.almacenamiento:list[Shelf] = self.generate_shelves(largo,ancho)
         self.costos_mantenimiento = sum([shelf.costo_mantenimiento for shelf in self.almacenamiento])
         self.posicion = posicion
         self.niveles = niveles
@@ -81,6 +92,12 @@ class Sector:
             if floor is not None:
                 return shelf,floor
         return None,None
+
+    def append_pallet(self,pallet):
+        for shelf in self.almacenamiento:
+            floor = shelf.append_pallet(pallet)
+            if floor is not None:
+                return shelf,floor
 
     def generate_shelves(self,largo, ancho):
         shelves = []
@@ -148,30 +165,74 @@ class Almacen:
         return equipos
 
 # Simulación de flujos de materiales
+
 class Entrada(sim.Component):
     def process(self):
-        while True:
-            # Generar pallets entrantes
-            pallet = Pallet(sku='SKU1', sector='Almacén Foods')
-            autoelevador = self.seleccionar_equipo(pallet)
-            yield self.request(autoelevador)
-            # Tomar pallet desde el piso y arrancar (16 segundos)
-            yield self.hold(16/3600)
-            # Escanear pallet desde el autoelevador (15 segundos)
-            yield self.hold(15/3600)
-            # Tiempo de viaje
-            distancia = 100  # metros (ejemplo)
-            tiempo_viaje = distancia / 1.82 / 3600
-            yield self.hold(tiempo_viaje)
-            # Dejar pallet en el piso y arrancar (16 segundos)
-            yield self.hold(16/3600)
-            self.release(autoelevador)
-            # Esperar antes de la siguiente llegada
-            yield self.hold(sim.Exponential(1).sample())
+        with open('movimientos.csv', 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                material = row['Material']
+                movimiento = row['Movimiento']  # 'Entrada' or 'Salida'
+                hora = row['Hora']
+                fecha = row['Fecha']
+                almacenamiento = row['Almacenamiento']  # Sector name
+
+                pallet = Pallet(sku=material, sector=almacenamiento, material=material)
+                equipo = self.seleccionar_equipo(pallet)
+
+                yield self.request(equipo)
+                # Tomar pallet desde el piso y arrancar (16 segundos)
+                yield self.hold(16 / 3600)
+                # Escanear pallet desde el autoelevador (15 segundos)
+                yield self.hold(15 / 3600)
+
+                # Calcular tiempo de viaje
+                origen = (0, 0)  # Punto de inicio
+                destino = self.obtener_destino(pallet)
+                distancia = self.calcular_distancia(origen, destino)
+                tiempo_viaje = distancia / 1.82 / 3600
+                yield self.hold(tiempo_viaje)
+
+                if movimiento == 'Entrada':
+                    # Colocar pallet en el almacenamiento
+                    yield self.hold(16 / 3600)  # Dejar pallet y arrancar
+                    sector:Sector = almacen.sectores[almacenamiento]
+                    shelf,floor = sector.append_pallet(pallet) 
+                    distancia = self.calcular_distancia(destino, shelf.position)
+                    tiempo_viaje = distancia / 1.82 / 3600
+                    yield self.hold(tiempo_viaje)
+                    tiempo_subir= floor/1.82/3600
+                    yield self.hold(tiempo_subir)
+                    yield self.hold(16 / 3600)  # Dejar pallet y arrancar
+
+                elif movimiento == 'Salida':
+                    # Retirar pallet del almacenamiento
+                    yield self.hold(16 / 3600)  # Tomar pallet y arrancar
+                    sector = almacen.sectores[almacenamiento]
+                    sector.almacenamiento[0].remove_pallet(floor=0)  # Simplificado
+
+                self.release(equipo)
+                # Esperar hasta la siguiente acción programada
+                yield self.hold(self.tiempo_hasta_siguiente(hora))
 
     def seleccionar_equipo(self, pallet):
         # Seleccionar el equipo adecuado
         return almacen.equipos['Autoelevador']
+
+    def obtener_destino(self, pallet):
+        # Obtener la posición del sector de almacenamiento
+        sector = almacen.sectores[pallet.sector]
+        return sector.posicion
+
+    def calcular_distancia(self, origen, destino):
+        # Calcula la distancia de manhattan entre dos puntos
+        dx = abs(destino[0] - origen[0])
+        dy = abs(destino[1] - origen[1])
+        return dx + dy
+
+    def tiempo_hasta_siguiente(self, hora_actual):
+        # Calcular el tiempo hasta la siguiente acción (simplificado)
+        return sim.Exponential(1).sample()
 
 class ModeloSimulacion:
     def __init__(self):

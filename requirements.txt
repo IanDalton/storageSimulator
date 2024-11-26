@@ -1,3 +1,5 @@
 salabim
 statistics
 scikit-optimize
+pandas
+openpyxl
