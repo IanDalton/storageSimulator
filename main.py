@@ -11,7 +11,7 @@ class ModeloSimulacion:
         # Agregar otros componentes como Salida, Operaciones de Picking, etc.
 
     def run(self):
-        self.env.run()  # Ejecutar la simulación por 100 horas
+        self.env.run() 
 
 # Ejecutar la simulación
 if __name__ == '__main__':

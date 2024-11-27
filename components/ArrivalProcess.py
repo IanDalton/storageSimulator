@@ -18,20 +18,29 @@ class ArrivalProcess(sim.Component):
         movimiento = self.arrivals[0]['movimiento']
         
         if movimiento.lower() == 'recepción':
-            self.porton = self.almacen.portones['Ingreso']
+            portones = self.almacen.portones['Ingreso']
         elif movimiento.lower() == 'salidas':
-            self.porton = self.almacen.portones['Salida']
+            portones = self.almacen.portones['Salida']
 
-        yield self.request(self.porton)
+        # Wait until a Porton becomes available
+        while True:
+            for porton in portones:
+                if not porton.in_use:
+                    self.porton = porton
+                    break
+            if self.porton:
+                break
+            yield self.hold(60/3600)  # Wait for 1 time unit before checking again
+
+        self.porton.in_use = True   
 
         tasks = []
 
         for arrival in self.arrivals:
             material = arrival['material']
             movimiento = arrival['movimiento']  # 'Recepción' or 'Salidas'
-            # TODO: conseguir almacenamiento
             almacenamiento = None
-            pallet = Pallet(sku=material, sector=almacenamiento)
+            pallet = Pallet(sku=material, sector=almacenamiento,material=material,env=self.env)
 
             if movimiento.lower() == 'recepción':
                 # Simulate the entry process
@@ -41,14 +50,14 @@ class ArrivalProcess(sim.Component):
                 TransportProcess(pallet, self.porton, "entrada", almacen=self.almacen).activate()
 
             elif movimiento.lower() == 'salidas':
-                #TODO: Agrupar todos los arrivals para generar el pedido masivo y a medida que van llegando los pallets, se van procesando
                 # Simulate the exit process
+                task = TransportProcess(pallet, self.porton, "salida", callback=self.interaccion_camion, almacen=self.almacen)
+                task.activate()
+                yield self.wait(task)
 
-                tasks.append(TransportProcess(pallet, self.porton, "salida", callback=self.interaccion_camion, almacen=self.almacen).activate())
 
-        yield self.wait(*tasks)
 
-        self.release(self.porton)
+        self.porton.in_use = False
 
     def interaccion_camion(self):
         zorra = self.almacen.equipos["Zorra"]

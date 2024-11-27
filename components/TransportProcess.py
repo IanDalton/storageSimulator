@@ -76,9 +76,9 @@ class TransportProcess(sim.Component):
             yield self.wait(self.callback())
 
         if self.type =="entrada":
-            self.pallet.store_end_time = sim.now()
+            self.pallet.store_end_time = self.env.now()
         else:
-            self.pallet.retrieve_end_time = sim.now()
+            self.pallet.retrieve_end_time = self.env.now()
 
 
 
@@ -99,7 +99,7 @@ class TransportProcess(sim.Component):
                 writer.writerow({'sku': self.pallet.sku, 'sector': self.pallet.sector, 'material': self.pallet.material,
                                  'movimiento': 'Salida', 'hora_inicio': self.pallet.retrieve_start_time, 'hora_fin': self.pallet.retrieve_end_time,"sim_id":sim.id()})
 
-
+        
 
 
     def obtain_material(self):

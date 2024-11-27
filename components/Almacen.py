@@ -2,10 +2,12 @@ from components.Equipo import Equipo
 from components.Sector import Sector
 from components.Shelf import DriveIn, PushBack, SelectivoDoble, SelectivoSimple
 from components.Porton import Porton
+import salabim as sim 
 
 
-class Almacen:
+class Almacen(sim.Component):
     def __init__(self):
+        super().__init__()
         self.largo = 285  # metros
         self.sectores = self.crear_sectores()
         self.equipos = self.crear_equipos()
@@ -44,6 +46,15 @@ class Almacen:
             Sector(
             "HPC", SelectivoDoble(), largo=130, ancho=45, posicion=(25, 30))]
         return sectores
+
+    def wait_for_release(self, agent_list):
+        while True:
+            for agent in agent_list:
+                if agent.isavailable():
+                    # Found an available agent
+                    return agent
+            # No agent is available; wait for 1 time unit before checking again
+            yield self.hold(60/3600)
 
     def crear_equipos(self, autoelevadores=3, reach_baja=2, reach_alta=2, transpaletas=2, zorras=2):
         equipos = {}
