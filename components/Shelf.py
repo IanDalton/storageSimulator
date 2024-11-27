@@ -30,6 +30,7 @@ class Shelf:
                 self.content[i] = pallet
                 return i
         return None
+    
     def locate_empty(self)-> int:
         for i,floor in enumerate(self.content):
             if floor.contains(None):

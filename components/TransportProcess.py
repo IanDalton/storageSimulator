@@ -14,21 +14,21 @@ import os
 
 
 class TransportProcess(sim.Component):
-    def __init__(self, pallet, porton, type, almacen, callback=None):
+    def __init__(self, pallet, porton, type, almacen, parent):
         super().__init__()
         self.pallet: Pallet = pallet
         self.porton: Porton = porton
         self.transport = None
         self.type = type
         self.almacen = almacen
-        self.callback = callback
-
+        self.parent = parent
 
 
     def process(self):
+        
+        
+        
         # Calculate travel time to exit
-
-
         origen = self.porton.posicion
         if self.type == "entrada":
             shelf,sector = self.obtain_empty_shelf()
@@ -36,22 +36,41 @@ class TransportProcess(sim.Component):
             shelf,sector = self.obtain_material()
         shelf: Shelf
         # Obtain the destination absolute coordinates
-        destino = (shelf.posicion[0]+ sector.posicion[0],shelf.posicion[1]+sector.posicion[1])
-        floor = shelf.locate_empty()
-        height = floor*shelf.shelf_height
+        if shelf is not None:
+            destino = (shelf.position[0]+ sector.posicion[0],shelf.position[1]+sector.posicion[1])
+            floor = shelf.locate_empty()
+            height = floor*shelf.shelf_height
+        else:
+            # OVERFLOW
+            destino = (500,500) ### TOMI
+            floor = 1
+            height = 1.82
+        
 
         if height < self.almacen.equipos["Autoelevador"][0].altura_maxima:
-            self.transport = self.almacen.equipos["Autoelevador"]
+            transportes = self.almacen.equipos["Autoelevador"]
         elif height < self.almacen.equipos["Reach Baja"][0].altura_maxima:
-            self.transport = self.almacen.equipos["Reach Baja"]
+            transportes = self.almacen.equipos["Reach Baja"]
         else:
-            self.transport = self.almacen.equipos["Reach Alta"]
+            transportes = self.almacen.equipos["Reach Alta"]
 
         if self.type != "entrada": # Redundant, it is just to make it easier to read
             origen,destino = destino,origen
 
-        yield self.request(self.transport)
+        # Wait until a Porton becomes available
         self.transport: Equipo
+        while True:
+            for transporte in transportes:
+                if not transporte.in_use:
+                    self.transport = transporte
+                    break
+            if self.transport:
+                break
+            yield self.hold(60/3600)  # Wait for 1 time unit before checking again
+
+        self.transport.in_use = True
+        
+        
         yield self.hold(self.transport.get_time_to_location(origen)/3600) # Travel to destination
         # Pick up the pallet
         yield self.hold(16/3600)
@@ -64,16 +83,16 @@ class TransportProcess(sim.Component):
 
         # Place the pallet
         yield self.hold(16/3600)
-        if self.type == "entrada":
+        if self.type == "entrada" and shelf is not None: # Si no tengo ninguna estantería libre, se 'guarda' en Overflow
             shelf.add_pallet(self.pallet,floor)
-        else:
+        elif self.type == "salida" and shelf is not None: # Si ninguna estantería tiene el material, se 'saca' de Overflow
             shelf.remove_pallet(self.pallet,floor)
 
-        self.release(self.transport)
+        self.transport.in_use = False
         self.transport = None
 
-        if self.callback:
-            yield self.wait(self.callback())
+        if self.type != "entrada": # Si es salida, entonces debe interactuar con la Zorra antes de confirmarse la transacción
+            yield from self.parent.interaccion_camion(self.porton)
 
         if self.type =="entrada":
             self.pallet.store_end_time = self.env.now()
@@ -81,9 +100,7 @@ class TransportProcess(sim.Component):
             self.pallet.retrieve_end_time = self.env.now()
 
 
-
         # Documentar transaccion
-
         if not os.path.exists('transacciones.csv'):
             with open('transacciones.csv', 'w') as csvfile:
                 writer = csv.DictWriter(
@@ -99,8 +116,8 @@ class TransportProcess(sim.Component):
                 writer.writerow({'sku': self.pallet.sku, 'sector': self.pallet.sector, 'material': self.pallet.material,
                                  'movimiento': 'Salida', 'hora_inicio': self.pallet.retrieve_start_time, 'hora_fin': self.pallet.retrieve_end_time,"sim_id":sim.id()})
 
-        
 
+        self.parent.transport_ready.set(True) ### TOMI
 
     def obtain_material(self):
         sector:Sector
@@ -126,7 +143,7 @@ class TransportProcess(sim.Component):
 
 
 
-    def obtain_empty_shelf(self)-> Shelf:
+    def obtain_empty_shelf(self):
         sector = self.get_nearest_sector(self.porton.posicion)
         shelf = sector.get_open_shelf(self.porton.posicion)
         if shelf is None:

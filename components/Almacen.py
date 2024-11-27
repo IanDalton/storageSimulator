@@ -32,12 +32,12 @@ class Almacen(sim.Component):
 
     def crear_sectores(self):
         sectores = {}
-        sectores['Frío'] = Sector(
+        sectores['FRIO'] = Sector(
             'Frío', SelectivoSimple(), largo=80, ancho=20, posicion=(220, 0))
-        sectores['Aerosoles'] = [Sector(
+        sectores['AEROSOL'] = [Sector(
             'Aerosoles', DriveIn(4), largo=70, ancho=25, posicion=(0, 130)),
             Sector('Aerosoles', DriveIn(4), largo=70, ancho=25, posicion=(0, 0))] # TODO: Crear variable decision
-        sectores["Food"] = [Sector('Almacén Foods', PushBack(4), largo=90, ancho=20, posicion=(200, 30)),# TODO: Crear variable decision
+        sectores["FOODS"] = [Sector('Almacén Foods', PushBack(4), largo=90, ancho=20, posicion=(200, 30)),# TODO: Crear variable decision
                          Sector('Almacén Foods', PushBack(4), largo=130, ancho=50, posicion=(150, 30))]
         sectores["HPC"] = [Sector(
             "HPC", SelectivoDoble(), largo=130, ancho=30, posicion=(120, 30)),
@@ -56,7 +56,7 @@ class Almacen(sim.Component):
             # No agent is available; wait for 1 time unit before checking again
             yield self.hold(60/3600)
 
-    def crear_equipos(self, autoelevadores=3, reach_baja=2, reach_alta=2, transpaletas=2, zorras=2):
+    def crear_equipos(self, autoelevadores=3, reach_baja=2, reach_alta=2, zorras=2):
         equipos = {}
         equipos['Autoelevador'] = [Equipo(
             'Autoelevador', altura_maxima=6, costo_mensual=1250)for _ in range(autoelevadores)]
