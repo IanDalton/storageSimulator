@@ -38,8 +38,6 @@ class ArrivalProcess(sim.Component):
 
         porton.in_use = True   
 
-        tasks = []
-
         for arrival in self.arrivals:
             material = arrival['material']
             movimiento = arrival['movimiento']  # 'Recepción' or 'Salidas'
@@ -85,6 +83,7 @@ class ArrivalProcess(sim.Component):
         yield self.hold(15 / 3600)
         
         zorra.in_use = False
+        
 
     def obtener_destino(self, pallet):
         # Get the storage location coordinates

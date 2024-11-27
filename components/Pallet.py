@@ -7,8 +7,12 @@ class Pallet:
         self.env = env
         self.store_start_time = self.env.now()
         self.store_end_time = None
+        self.cost_start = None
         self.retrieve_start_time = self.env.now()
         self.retrieve_end_time = None
+        self.cost_end = None
+
+        return None
     def __eq__(self, other):
         if isinstance(other, str):
             return other == self.material

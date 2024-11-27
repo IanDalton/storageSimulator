@@ -23,17 +23,18 @@ class Shelf:
         self.shelf_type = shelf_type
         self.content:list[list[Pallet]] = [[None for _ in range(pallets_per_floor)] for _ in range(self.floors)] # Perdon
     def add_pallet(self,pallet,floor):
-        self.content[floor] = pallet
+        pos = self.content[floor].index(None)
+        self.content[floor][pos] = pallet
     def append_pallet(self,pallet):
         for i,floor in enumerate(self.content):
-            if floor.contains(None):
+            if None in floor:
                 self.content[i] = pallet
                 return i
         return None
     
     def locate_empty(self)-> int:
         for i,floor in enumerate(self.content):
-            if floor.contains(None):
+            if None in floor:
                 return i
         return None
 

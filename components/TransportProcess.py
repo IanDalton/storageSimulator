@@ -1,3 +1,4 @@
+
 from components.Equipo import Equipo
 from components.Pallet import Pallet
 from components.Porton import Porton
@@ -38,13 +39,21 @@ class TransportProcess(sim.Component):
         # Obtain the destination absolute coordinates
         if shelf is not None:
             destino = (shelf.position[0]+ sector.posicion[0],shelf.position[1]+sector.posicion[1])
-            floor = shelf.locate_empty()
+            if self.type == "entrada":
+                floor = shelf.locate_empty()
+            else:
+                floor = shelf.locate(self.pallet.material)
             height = floor*shelf.shelf_height
         else:
             # OVERFLOW
             destino = (500,500) ### TOMI
             floor = 1
             height = 1.82
+
+        if self.type == "entrada" and shelf is not None: # Si no tengo ninguna estantería libre, se 'guarda' en Overflow
+            shelf.add_pallet(self.pallet,floor)
+        elif self.type == "salida" and shelf is not None: # Si ninguna estantería tiene el material, se 'saca' de Overflow
+            shelf.remove_pallet(self.pallet,floor)
         
 
         if height < self.almacen.equipos["Autoelevador"][0].altura_maxima:
@@ -83,16 +92,15 @@ class TransportProcess(sim.Component):
 
         # Place the pallet
         yield self.hold(16/3600)
-        if self.type == "entrada" and shelf is not None: # Si no tengo ninguna estantería libre, se 'guarda' en Overflow
-            shelf.add_pallet(self.pallet,floor)
-        elif self.type == "salida" and shelf is not None: # Si ninguna estantería tiene el material, se 'saca' de Overflow
-            shelf.remove_pallet(self.pallet,floor)
+        
 
         self.transport.in_use = False
+
+        cost = self.transport.costo_mensual/30/24
         self.transport = None
 
         if self.type != "entrada": # Si es salida, entonces debe interactuar con la Zorra antes de confirmarse la transacción
-            yield from self.parent.interaccion_camion(self.porton)
+            yield from self.interaccion_camion()
 
         if self.type =="entrada":
             self.pallet.store_end_time = self.env.now()
@@ -102,23 +110,46 @@ class TransportProcess(sim.Component):
 
         # Documentar transaccion
         if not os.path.exists('transacciones.csv'):
-            with open('transacciones.csv', 'w') as csvfile:
+            with open('transacciones.csv', 'w',newline="") as csvfile:
                 writer = csv.DictWriter(
-                    csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"sim_id"])
+                    csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"sim_id","cost_per_hour"])
                 writer.writeheader()
-        with open('transacciones.csv', 'a') as csvfile:
+        with open('transacciones.csv', 'a',newline="") as csvfile:
             writer = csv.DictWriter(
-                csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"sim_id"])
+                csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"sim_id","cost_per_hour"])
             if self.type == "entrada":
                 writer.writerow({'sku': self.pallet.sku, 'sector': self.pallet.sector, 'material': self.pallet.material,
-                                 'movimiento': 'Entrada', 'hora_inicio': self.pallet.store_start_time, 'hora_fin': self.pallet.store_end_time,"sim_id":sim.id()})
+                                 'movimiento': 'Entrada', 'hora_inicio': self.pallet.store_start_time*3600, 'hora_fin': self.pallet.store_end_time*3600,"sim_id":self.almacen.run_id,"cost_per_hour":cost})
             else:
                 writer.writerow({'sku': self.pallet.sku, 'sector': self.pallet.sector, 'material': self.pallet.material,
-                                 'movimiento': 'Salida', 'hora_inicio': self.pallet.retrieve_start_time, 'hora_fin': self.pallet.retrieve_end_time,"sim_id":sim.id()})
+                                 'movimiento': 'Salida', 'hora_inicio': self.pallet.retrieve_start_time*3600, 'hora_fin': self.pallet.retrieve_end_time*3600,"sim_id":self.almacen.run_id,"cost_per_hour":cost})
 
 
         self.parent.transport_ready.set(True) ### TOMI
 
+    def interaccion_camion(self):
+        zorras = self.parent.almacen.equipos["Zorra"]
+        zorra = None
+        while True:
+            for zorra in zorras:
+                if not zorra.in_use:
+                    zorra = zorra
+                    zorra: Equipo
+                    break
+            if zorra:
+                break
+            yield self.hold(60/3600)  # Wait for 1 time unit before checking again
+
+        zorra.in_use = True
+        
+        yield self.hold(zorra.get_time_to_location(self.porton.posicion)/3600)
+
+        # Simulate picking up the pallet (16 seconds)
+        yield self.hold(16 / 3600)
+        # Simulate scanning the pallet (15 seconds)
+        yield self.hold(15 / 3600)
+        
+        zorra.in_use = False
     def obtain_material(self):
         sector:Sector
         nearest_shelf = None
@@ -130,10 +161,10 @@ class TransportProcess(sim.Component):
             if shelf is not None:
                 if nearest_shelf is None:
                     nearest_shelf = shelf
-                    distance = sector.calculate_distance_to_floor(self.transport.posicion,shelf,floor)
+                    distance = sector.calculate_distance_to_floor((120,0),shelf,floor)
                     nearest_sector = sector
                 else:
-                    calculated_distance = sector.calculate_distance_to_floor(self.transport.posicion,shelf,floor)
+                    calculated_distance = sector.calculate_distance_to_floor((120,0),shelf,floor)
                     if calculated_distance < distance:
                         nearest_shelf = shelf
                         distance = calculated_distance
@@ -165,3 +196,4 @@ class TransportProcess(sim.Component):
                     nearest_sector = sector
                     nearest_distance = calculate_distance(origin,sector.posicion)
         return nearest_sector
+        

@@ -6,12 +6,13 @@ import salabim as sim
 
 
 class Almacen(sim.Component):
-    def __init__(self):
+    def __init__(self, autoelevadores=3, reach_baja=2, reach_alta=2, zorras=2, sectores=None,run_id=0):
         super().__init__()
         self.largo = 285  # metros
-        self.sectores = self.crear_sectores()
-        self.equipos = self.crear_equipos()
+        self.sectores = self.crear_sectores(sectores)
+        self.equipos = self.crear_equipos(autoelevadores, reach_baja, reach_alta, zorras)
         self.portones = self.crear_portones()
+        self.run_id = run_id
 
     def crear_portones(self, salida1=8, salida2=4, entrada=2):
         portones = {}
@@ -30,10 +31,12 @@ class Almacen(sim.Component):
             porton.assign_id(i)
         return portones
 
-    def crear_sectores(self):
+    def crear_sectores(self,sectores=None):
+        if sectores is not None:
+            return sectores
         sectores = {}
         sectores['FRIO'] = Sector(
-            'Frío', SelectivoSimple(), largo=80, ancho=20, posicion=(220, 0))
+            'Frío', SelectivoSimple(), largo=80, ancho=20, posicion=(220, 0))#TODO: Cambiar tipos
         sectores['AEROSOL'] = [Sector(
             'Aerosoles', DriveIn(4), largo=70, ancho=25, posicion=(0, 130)),
             Sector('Aerosoles', DriveIn(4), largo=70, ancho=25, posicion=(0, 0))] # TODO: Crear variable decision
@@ -56,14 +59,14 @@ class Almacen(sim.Component):
             # No agent is available; wait for 1 time unit before checking again
             yield self.hold(60/3600)
 
-    def crear_equipos(self, autoelevadores=3, reach_baja=2, reach_alta=2, zorras=2):
+    def crear_equipos(self, autoelevadores, reach_baja, reach_alta, zorras):
         equipos = {}
         equipos['Autoelevador'] = [Equipo(
-            'Autoelevador', altura_maxima=6, costo_mensual=1250)for _ in range(autoelevadores)]
+            'Autoelevador', altura_maxima=6, costo_mensual=1250) for _ in range(autoelevadores)]
         equipos['Reach Baja'] = [Equipo(
             'Reach Baja', altura_maxima=8, costo_mensual=1260) for _ in range(reach_baja)]
         equipos['Reach Alta'] = [Equipo(
-            'Reach Alta', altura_maxima=10, costo_mensual=1800)for _ in range(reach_alta)]
+            'Reach Alta', altura_maxima=10, costo_mensual=1800) for _ in range(reach_alta)]
         equipos['Zorra'] = [
             Equipo('Zorra', altura_maxima=0, costo_mensual=1000) for _ in range(zorras)]
         return equipos

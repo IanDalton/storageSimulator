@@ -16,7 +16,7 @@ class ArrivalGenerator(sim.Component):
         # Reference start time for the simulation
         yield self.hold(0)
         sim_start = None
-        with open(self.csv_file, 'r') as csvfile:
+        with open(self.csv_file, 'r',encoding="utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
             data = dict()
             for row in reader:
