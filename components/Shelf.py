@@ -37,13 +37,14 @@ class Shelf:
         return None
 
 
-    def remove_pallet(self):
-        for i, floor in enumerate(self.content):
-            for j, pallet in enumerate(floor):
-                if pallet is not None:
-                    self.content[i][j] = None
-                    return pallet
-        return None  # If no pallet is found
+    def remove_pallet(self,pallet:Pallet,floor:int):
+        pallet_pos = self.content[floor].index(pallet)
+        old_pallet = self.content[floor][pallet_pos]
+        pallet.store_start_time = old_pallet.store_start_time
+        pallet.store_end_time = old_pallet.store_end_time
+        self.content[floor][pallet_pos] = None
+
+
     
     def locate(self,material):
         for i,floor in enumerate(self.content):

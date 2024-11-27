@@ -11,14 +11,14 @@ class Almacen:
         self.equipos = self.crear_equipos()
         self.portones = self.crear_portones()
 
-    def crear_portones(self, salida1, salida2, entrada):
+    def crear_portones(self, salida1=8, salida2=4, entrada=2):
         portones = {}
         portones['Ingreso'] = [Porton('Ingreso', posicion=(
-            4+17*(salida1+i), 0)) for i in range(entrada)]
+            4+17*(salida1+i), 0), capacity=1) for i in range(entrada)]
         portones['Salida'] = [
-            Porton('Salida', posicion=(i*17+4, 0)) for i in range(salida1)]
+            Porton('Salida', posicion=(i*17+4, 0), capacity=1) for i in range(salida1)]
         portones['Salida'].extend([Porton('Salida', posicion=(
-            4+17*(i+entrada), 0)) for i in range(salida1, salida2)])
+            4+17*(i+entrada), 0), capacity=1) for i in range(salida1, salida2)])
 
         for i, porton in enumerate(portones['Ingreso']):
             porton.assign_id(i)
@@ -33,10 +33,10 @@ class Almacen:
         sectores['Frío'] = Sector(
             'Frío', SelectivoSimple(), largo=80, ancho=20, posicion=(220, 0))
         sectores['Aerosoles'] = [Sector(
-            'Aerosoles', DriveIn(), largo=70, ancho=25, posicion=(0, 130)),
-            Sector('Aerosoles', DriveIn(), largo=70, ancho=25, posicion=(0, 0))]
-        sectores["Food"][Sector('Almacén Foods', PushBack(), largo=90, ancho=20, posicion=(200, 30)),
-                         Sector('Almacén Foods', PushBack(), largo=130, ancho=50, posicion=(150, 30))]
+            'Aerosoles', DriveIn(4), largo=70, ancho=25, posicion=(0, 130)),
+            Sector('Aerosoles', DriveIn(4), largo=70, ancho=25, posicion=(0, 0))] # TODO: Crear variable decision
+        sectores["Food"] = [Sector('Almacén Foods', PushBack(4), largo=90, ancho=20, posicion=(200, 30)),# TODO: Crear variable decision
+                         Sector('Almacén Foods', PushBack(4), largo=130, ancho=50, posicion=(150, 30))]
         sectores["HPC"] = [Sector(
             "HPC", SelectivoDoble(), largo=130, ancho=30, posicion=(120, 30)),
             Sector(

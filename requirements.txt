@@ -3,3 +3,4 @@ statistics
 scikit-optimize
 pandas
 openpyxl
+greenlet

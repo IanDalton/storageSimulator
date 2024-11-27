@@ -5,10 +5,9 @@ from components.ArrivalGenerator import ArrivalGenerator
 class ModeloSimulacion:
     def __init__(self):
         self.env = sim.Environment()
-        global almacen
-        almacen = Almacen()
+        self.almacen = Almacen()
         
-        ArrivalGenerator(csv_file='movimientos.csv')
+        ArrivalGenerator(csv_file='movements.csv', almacen=self.almacen)
         # Agregar otros componentes como Salida, Operaciones de Picking, etc.
 
     def run(self):
@@ -16,5 +15,6 @@ class ModeloSimulacion:
 
 # Ejecutar la simulación
 if __name__ == '__main__':
+    sim.yieldless(False)
     modelo = ModeloSimulacion()
     modelo.run()

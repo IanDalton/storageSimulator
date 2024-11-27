@@ -1,5 +1,5 @@
 from components.Shelf import Shelf, ShelfType
-from utils import calculate_distance
+from components.utils import calculate_distance
 
 
 class Sector:
@@ -7,7 +7,7 @@ class Sector:
         self.nombre = nombre
         self.tipo_estanteria:ShelfType = tipo_estanteria
         self.almacenamiento:list[Shelf] = self.generate_shelves(largo,ancho)
-        self.costos_mantenimiento = sum([shelf.costo_mantenimiento for shelf in self.almacenamiento])
+        self.costos_mantenimiento = sum([shelf.shelf_type.costo_mantenimiento for shelf in self.almacenamiento])
         self.posicion = posicion
         self.niveles = niveles
 
@@ -65,8 +65,8 @@ class Sector:
                 shelf = Shelf(
                     corridor=w,
                     position=(position_x, position_y),
-                    floors=self.niveles,
-                    shelf_height=self.tipo_estanteria.altura_estante,
+                    floors=6,
+                    shelf_height=2.1, #TODO: Change this to a variable
                     pallets_per_floor=self.tipo_estanteria.pallets_por_fila,
                     shelf_type=self.tipo_estanteria
                 )
