@@ -1,39 +1,36 @@
 import salabim as sim
 from components.Almacen import Almacen
 from components.ArrivalGenerator import ArrivalGenerator
-import threading
 from components.Equipo import Equipo
 from components.Sector import Sector
 from components.Shelf import DriveIn, PushBack, SelectivoDoble, SelectivoSimple
 from components.Porton import Porton
-
 
 class ModeloSimulacion:
     def __init__(self, **data):
         self.env = sim.Environment()
         self.almacen = Almacen(autoelevadores=data['autoelevadores'], reach_baja=data['reach_baja'],
                                reach_alta=data['reach_alta'], zorras=data['zorras'], sectores=data['sectores'], run_id=data['run_id'])
-        
+
         ArrivalGenerator(csv_file=data["csv_file"], almacen=self.almacen)
         # Agregar otros componentes como Salida, Operaciones de Picking, etc.
 
     def run(self):
         self.env.run()
+
     def serialize_environment(self):
         return self.env.serialize()
 
-
 def run_simulation(**params):
+    
     modelo = ModeloSimulacion(**params)
     modelo.run()
     serialized_env = modelo.serialize_environment()
-    print(serialized_env)  
-
+    print(serialized_env)  # Or handle the serialized environment as needed
 
 # Ejecutar la simulación
 if __name__ == '__main__':
     sim.yieldless(False)
-    threads = []
     sectores_variation_1 = {
         # Changed to SelectivoDoble
         'FRIO': Sector('Frío', SelectivoDoble(), largo=80, ancho=20, posicion=(220, 0)),
@@ -141,9 +138,4 @@ if __name__ == '__main__':
             'sectores': sectores_variation_4, 'run_id': 4}
     ]
     for params in parameters:
-        thread = threading.Thread(target=run_simulation, kwargs=params)
-        threads.append(thread)
-        thread.start()
-
-    for thread in threads:
-        thread.join()
+        run_simulation(**params)
