@@ -13,6 +13,8 @@ class Almacen(sim.Component):
         self.equipos = self.crear_equipos(autoelevadores, reach_baja, reach_alta, zorras)
         self.portones = self.crear_portones()
         self.run_id = run_id
+        self.costo_transporte = self.calcular_costo_transportes(self.equipos)
+        self.costo_almacenamiento_propio = self.calcular_costo_almacenamiento(self.sectores)
 
     def crear_portones(self, salida1=8, salida2=4, entrada=2):
         portones = {}
@@ -70,3 +72,41 @@ class Almacen(sim.Component):
         equipos['Zorra'] = [
             Equipo('Zorra', altura_maxima=0, costo_mensual=1000) for _ in range(zorras)]
         return equipos
+    
+    def calcular_costo_transportes(self, equipos):
+        costo_autoelevadores = len(equipos['Autoelevador']) * 1250
+        costo_reach_baja = len(equipos['Reach Baja']) * 1260
+        costo_reach_alta = len(equipos['Reach Alta']) * 1800
+        costo_zorra = len(equipos['Zorra']) * 1000
+        return costo_autoelevadores + costo_reach_baja + costo_reach_alta + costo_zorra
+    
+    def calcular_costo_almacenamiento(self, sectores):
+        costo_almacenar = 0
+        for sector in sectores.values():
+            if isinstance(sector, list):  # Si el sector es una lista (como en AEROSOL, FOODS y HPC)
+                for s in sector:
+                    if(s.tipo_estanteria == 'Selectivo Simple'):
+                        costo_almacenar += 5 * 14.2
+                    elif(s.tipo_estanteria == 'Selectivo Simple'):
+                        costo_almacenar += 5 * 21.4
+                    elif(s.tipo_estanteria == 'Drive-in'):
+                        costo_almacenar += 5 * (1.45 * (3 + s.almacenamiento[0].pallets_per_floor * 1.1))
+                    else:
+                        costo_almacenar += 5 * (1.45 * (3 + s.almacenamiento[0].pallets_per_floor * 1.1))
+                    
+                    costo_almacenar += s.costos_mantenimiento
+                        
+            else:  # Si es un solo sector
+                if(sector.tipo_estanteria == 'Selectivo Simple'):
+                    costo_almacenar += 5 * 14.2
+                elif(sector.tipo_estanteria == 'Selectivo Simple'):
+                    costo_almacenar += 5 * 21.4
+                elif(sector.tipo_estanteria == 'Drive-in'):
+                    costo_almacenar += 5 * (1.45 * (3 + sector.almacenamiento[0].pallets_per_floor * 1.1))
+                else:
+                    costo_almacenar += 5 * (1.45 * (3 + sector.almacenamiento[0].pallets_per_floor * 1.1))
+                
+                costo_almacenar += sector.costos_mantenimiento
+                
+        return costo_almacenar
+                

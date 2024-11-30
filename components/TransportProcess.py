@@ -26,9 +26,6 @@ class TransportProcess(sim.Component):
 
 
     def process(self):
-        
-        
-        
         # Calculate travel time to exit
         origen = self.porton.posicion
         if self.type == "entrada":
@@ -96,7 +93,6 @@ class TransportProcess(sim.Component):
 
         self.transport.in_use = False
 
-        cost = self.transport.costo_mensual/30/24
         self.transport = None
 
         if self.type != "entrada": # Si es salida, entonces debe interactuar con la Zorra antes de confirmarse la transacción
@@ -107,22 +103,30 @@ class TransportProcess(sim.Component):
         else:
             self.pallet.retrieve_end_time = self.env.now()
 
+        costo_transporte = self.almacen.costo_transporte
+        costo_almacenamiento_propio = self.almacen.costo_almacenamiento_propio
+        costo_propio = costo_transporte + costo_almacenamiento_propio
+        costo_overflow = 0
+        if shelf is None and self.type == "entrada": # costo de almacenar en overflow
+            costo_overflow += 7 * 3.55 # m2 de un Pallet
+            
+        
 
         # Documentar transaccion
         if not os.path.exists('transacciones.csv'):
             with open('transacciones.csv', 'w',newline="") as csvfile:
                 writer = csv.DictWriter(
-                    csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"sim_id","cost_per_hour"])
+                    csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"costo_propio","costo_overflow","sim_id"])
                 writer.writeheader()
         with open('transacciones.csv', 'a',newline="") as csvfile:
             writer = csv.DictWriter(
-                csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"sim_id","cost_per_hour"])
+                csvfile, fieldnames=['sku', 'sector', 'material', 'movimiento', 'hora_inicio', 'hora_fin',"costo_propio","costo_overflow","sim_id"])
             if self.type == "entrada":
                 writer.writerow({'sku': self.pallet.sku, 'sector': self.pallet.sector, 'material': self.pallet.material,
-                                 'movimiento': 'Entrada', 'hora_inicio': self.pallet.store_start_time*3600, 'hora_fin': self.pallet.store_end_time*3600,"sim_id":self.almacen.run_id,"cost_per_hour":cost})
+                                 'movimiento': 'Entrada', 'hora_inicio': self.pallet.store_start_time*3600, 'hora_fin': self.pallet.store_end_time*3600,"costo_propio":costo_propio,"costo_overflow":costo_overflow,"sim_id":self.almacen.run_id})
             else:
                 writer.writerow({'sku': self.pallet.sku, 'sector': self.pallet.sector, 'material': self.pallet.material,
-                                 'movimiento': 'Salida', 'hora_inicio': self.pallet.retrieve_start_time*3600, 'hora_fin': self.pallet.retrieve_end_time*3600,"sim_id":self.almacen.run_id,"cost_per_hour":cost})
+                                 'movimiento': 'Salida', 'hora_inicio': self.pallet.retrieve_start_time*3600, 'hora_fin': self.pallet.retrieve_end_time*3600,"costo_propio":costo_propio,"costo_overflow":costo_overflow,"sim_id":self.almacen.run_id})
 
 
         self.parent.transport_ready.set(True) ### TOMI

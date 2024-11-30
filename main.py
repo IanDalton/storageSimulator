@@ -132,18 +132,13 @@ if __name__ == '__main__':
     }
     parameters: list[dict] = [
         {'csv_file': 'movements.csv', 'autoelevadores': 3, 'reach_baja': 2, 'reach_alta': 2, 'zorras': 2,
-            'sectores': sectores_variation_1, 'run_id': 1
-         },
+            'sectores': sectores_variation_1, 'run_id': 1},
         {'csv_file': 'movements.csv', 'autoelevadores': 3, 'reach_baja': 2, 'reach_alta': 2, 'zorras': 2,
             'sectores': sectores_variation_2, 'run_id': 2},
         {'csv_file': 'movements.csv', 'autoelevadores': 3, 'reach_baja': 2, 'reach_alta': 2, 'zorras': 2,
             'sectores': sectores_variation_3, 'run_id': 3},
         {'csv_file': 'movements.csv', 'autoelevadores': 3, 'reach_baja': 2, 'reach_alta': 2, 'zorras': 2,
-            'sectores': sectores_variation_4,   'run_id': 4
-         },
-
-
-        # Add more parameter sets as needed
+            'sectores': sectores_variation_4, 'run_id': 4}
     ]
     for params in parameters:
         thread = threading.Thread(target=run_simulation, kwargs=params)

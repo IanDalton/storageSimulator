@@ -20,6 +20,7 @@ class Shelf:
         self.position = position
         self.floors = floors
         self.shelf_height = shelf_height
+        self.pallets_per_floor = pallets_per_floor
         self.shelf_type = shelf_type
         self.content:list[list[Pallet]] = [[None for _ in range(pallets_per_floor)] for _ in range(self.floors)] # Perdon
     def add_pallet(self,pallet,floor):
